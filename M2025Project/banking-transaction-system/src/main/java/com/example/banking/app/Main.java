@@ -1,0 +1,55 @@
+package com.example.banking.app;
+
+import com.example.banking.exception.ExitException;
+import com.example.banking.exception.LogoutException;
+import com.example.banking.model.Customer;
+import com.example.banking.repository.*;
+import com.example.banking.service.*;
+
+import java.util.Scanner;
+
+public class Main {
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        // === Initialize repositories ===
+        CustomerRepository customerRepo = new InMemoryCustomerRepository();
+        AccountRepository accountRepo = new InMemoryAccountRepository();
+        TransactionRepository transactionRepo = new InMemoryTransactionRepository();
+        AuditLogRepository auditRepo = new InMemoryAuditLogRepository();
+
+        // === Initialize services ===
+        AuthService authService = AuthService.getInstance(customerRepo);
+        AccountService accountService = AccountService.getInstance(accountRepo);
+        TransactionService transactionService = TransactionService.getInstance(accountRepo, transactionRepo, auditRepo);
+
+        // === Initialize menu handlers ===
+        GuestMenuHandler guestMenu = new GuestMenuHandler(authService);
+        CustomerMenuHandler customerMenu = new CustomerMenuHandler(authService, accountService, transactionService);
+
+        Customer loggedInCustomer = null;
+        boolean running = true;
+
+        while (running) {
+            try {
+                if (loggedInCustomer == null) {
+                    loggedInCustomer = guestMenu.showMenu(scanner);
+                } else {
+                    loggedInCustomer = customerMenu.showMenu(scanner, loggedInCustomer);
+                }
+            } catch (LogoutException e) {
+                System.out.println(e.getMessage());
+                loggedInCustomer = null;   // ✅ back to guest menu
+            } catch (ExitException e) {
+                System.out.println("👋 Exiting Banking System...");
+                running = false;   // ✅ ends the loop cleanly
+            } catch (Exception e) {
+                ExceptionHandler.handle(e);
+            }
+        }
+
+        scanner.close();
+    }
+}
+
