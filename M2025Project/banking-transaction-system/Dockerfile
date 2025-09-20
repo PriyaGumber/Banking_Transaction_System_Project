@@ -2,11 +2,11 @@
 FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
 
-# Copy pom.xml and download dependencies (better caching)
+# Copy pom.xml first (for caching dependencies)
 COPY pom.xml .
 RUN mvn dependency:go-offline -B
 
-# Copy source code and build
+# Copy source code and build the JAR
 COPY src ./src
 RUN mvn package -DskipTests
 
@@ -14,8 +14,8 @@ RUN mvn package -DskipTests
 FROM eclipse-temurin:17-jdk
 WORKDIR /app
 
-# Copy the built JAR from the build stage
+# Copy the built JAR from build stage
 COPY --from=build /app/target/*.jar app.jar
 
-# Run the app
+# Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
