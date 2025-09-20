@@ -54,16 +54,7 @@ public class AccountService {
         return acc.getBalance();
     }
 
-    // Helper: return account number (ACC...) for a given account id (UUID).
-// If accountId is null -> returns " ".
-// If account not found -> returns the original id (fallback).
-    public String getAccountNumberById(String accountId) {
-        if (accountId == null) return "-";
-        Account acc = accountRepository.findById(accountId);
-        return (acc != null) ? acc.getNumber() : accountId;
-    }
-
-// ✅ Close account
+    // ✅ Close account
     public void closeAccount(String accountNumber, String actorId) {
         Account acc = accountRepository.findByNumber(accountNumber);
         if (acc == null) throw new AccountNotFoundException("Account not found: " + accountNumber);
@@ -89,4 +80,13 @@ public class AccountService {
         }
         return acc;
     }
+    // Helper: return account number (ACC...) for a given account id (UUID).
+// If accountId is null -> returns "".
+// If account not found -> returns the original id (fallback).
+    public String getAccountNumberById(String accountId) {
+        if (accountId == null) return "-";
+        Account acc = accountRepository.findById(accountId);
+        return (acc != null) ? acc.getNumber() : accountId;
+    }
+
 }
