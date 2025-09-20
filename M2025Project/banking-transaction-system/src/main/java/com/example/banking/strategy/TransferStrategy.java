@@ -1,7 +1,7 @@
 package com.example.banking.strategy;
 
-import com.example.banking.exception.NegativeAmountException;
 import com.example.banking.exception.InsufficientFundsException;
+import com.example.banking.exception.NegativeAmountException;
 import com.example.banking.model.Account;
 import com.example.banking.model.Transaction;
 
@@ -22,7 +22,7 @@ public class TransferStrategy implements TransactionStrategy {
             throw new NegativeAmountException("Transfer amount must be positive");
         }
         if (sourceAccount.getBalance().compareTo(amount) < 0) {
-            throw new InsufficientFundsException("Insufficient funds for transfer");
+            throw new InsufficientFundsException("Insufficient funds");
         }
 
         // Deduct from source
@@ -40,3 +40,5 @@ public class TransferStrategy implements TransactionStrategy {
         );
     }
 }
+
+

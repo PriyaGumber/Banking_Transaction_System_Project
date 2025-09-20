@@ -22,6 +22,16 @@ public class Transaction {
         this.createdAt = Instant.now();
     }
 
+    public Transaction(String id, String fromAccountId, String toAccountId, String type, BigDecimal amount, String status, Instant createdAt) {
+        this.id = id;
+        this.fromAccountId = fromAccountId;
+        this.toAccountId = toAccountId;
+        this.type = type;
+        this.amount = amount;
+        this.status = status;
+        this.createdAt = createdAt;
+    }
+
     // Getters & Setters
     public String getId() { return id; }
     public String getFromAccountId() { return fromAccountId; }

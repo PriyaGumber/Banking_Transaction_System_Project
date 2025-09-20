@@ -8,7 +8,7 @@ public interface TransactionRepository {
 
     Transaction findById(String id);
 
-    List<Transaction> findByAccountNumber(String accountNumber);
+    List<Transaction> findByAccountId(String accountId);
 
     List<Transaction> findAll();
 }

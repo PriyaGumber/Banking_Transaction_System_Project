@@ -25,6 +25,20 @@ public class AuditLog {
         this.createdAt = Instant.now();
     }
 
+    public AuditLog(String id, String txnId, String accountId, String actor, String action,
+                    BigDecimal beforeBalance, BigDecimal afterBalance, Instant createdAt) {
+        this.id = id;
+        this.txnId = txnId;
+        this.accountId = accountId;
+        this.actor = actor;
+        this.action = action;
+        this.beforeBalance = beforeBalance;
+        this.afterBalance = afterBalance;
+        this.createdAt = createdAt;
+    }
+
+
+
     // Getters
     public String getId() { return id; }
     public String getTxnId() { return txnId; }

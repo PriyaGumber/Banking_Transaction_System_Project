@@ -17,6 +17,18 @@ public class Customer {
         this.phone = phone;
         this.createdAt = Instant.now();
     }
+    /**
+     * Constructor used when fetching an existing customer from the database.
+     * Here, createdAt comes directly from the DB instead of Instant.now().
+     */
+    public Customer(String id, String fullName, String email, String password, String phone, Instant createdAt) {
+        this.id = id;
+        this.fullName = fullName;
+        this.email = email;
+        this.password = password;
+        this.phone = phone;
+        this.createdAt = createdAt; // Use DB timestamp
+    }
 
     // Getters & Setters
     public String getId() { return id; }

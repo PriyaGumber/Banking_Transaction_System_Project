@@ -8,12 +8,14 @@ import com.example.banking.model.Account;
 import com.example.banking.model.Transaction;
 import com.example.banking.model.AuditLog;
 import com.example.banking.repository.AccountRepository;
+import com.example.banking.repository.DynamoDBAuditLogRepository;
 import com.example.banking.repository.TransactionRepository;
 import com.example.banking.repository.AuditLogRepository;
 import com.example.banking.strategy.DepositStrategy;
 import com.example.banking.strategy.WithdrawStrategy;
 import com.example.banking.strategy.TransferStrategy;
 import com.example.banking.strategy.TransactionStrategy;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -24,21 +26,25 @@ public class TransactionService {
     private static TransactionService instance;
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
-    private final AuditLogRepository auditLogRepository;
+    private final AuditLogRepository auditLogRepository; // MySQL
+    private final DynamoDBAuditLogRepository dynamoDbAuditLogRepository; // DynamoDB
 
     private TransactionService(AccountRepository accountRepository,
                                TransactionRepository transactionRepository,
-                               AuditLogRepository auditLogRepository) {
+                               AuditLogRepository auditLogRepository,
+                               DynamoDbClient dynamoDbClient) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.auditLogRepository = auditLogRepository;
+        this.dynamoDbAuditLogRepository = new DynamoDBAuditLogRepository(dynamoDbClient);
     }
 
     public static TransactionService getInstance(AccountRepository accountRepository,
                                                  TransactionRepository transactionRepository,
-                                                 AuditLogRepository auditLogRepository) {
+                                                 AuditLogRepository auditLogRepository,
+                                                 DynamoDbClient dynamoDbClient) {
         if (instance == null) {
-            instance = new TransactionService(accountRepository, transactionRepository, auditLogRepository);
+            instance = new TransactionService(accountRepository, transactionRepository, auditLogRepository, dynamoDbClient);
         }
         return instance;
     }
@@ -62,13 +68,18 @@ public class TransactionService {
             Transaction txn = strategy.execute(account, amount, null);
 
             accountRepository.save(account);
+
+            txn.setStatus("SUCCESS");
             transactionRepository.save(txn);
+
+            MiniStatementService.getInstance(transactionRepository).addTransaction(account.getId(), txn);
 
             AuditLog log = new AuditLog(UUID.randomUUID().toString(), txn.getId(), account.getId(),
                     actorId, "DEPOSIT", before, account.getBalance());
-            auditLogRepository.save(log);
 
-            txn.setStatus("SUCCESS");
+            auditLogRepository.save(log);
+            dynamoDbAuditLogRepository.save(log);
+
             return txn;
         } catch (Exception ex) {
             Transaction failTxn = new Transaction(UUID.randomUUID().toString(), null, account.getId(), "DEPOSIT", amount);
@@ -76,8 +87,10 @@ public class TransactionService {
             transactionRepository.save(failTxn);
 
             AuditLog failLog = new AuditLog(UUID.randomUUID().toString(), failTxn.getId(), account.getId(),
-                    actorId, "DEPOSIT_FAILED:" + ex.getMessage(), before, before);
+                    actorId, "DEPOSIT_FAILED", before, before);
+
             auditLogRepository.save(failLog);
+            dynamoDbAuditLogRepository.save(failLog);
 
             throw new TransactionFailedException("Deposit failed: " + ex.getMessage());
         }
@@ -102,13 +115,18 @@ public class TransactionService {
             Transaction txn = strategy.execute(account, amount, null);
 
             accountRepository.save(account);
+
+            txn.setStatus("SUCCESS");
             transactionRepository.save(txn);
+
+            MiniStatementService.getInstance(transactionRepository).addTransaction(account.getId(), txn);
 
             AuditLog log = new AuditLog(UUID.randomUUID().toString(), txn.getId(), account.getId(),
                     actorId, "WITHDRAW", before, account.getBalance());
-            auditLogRepository.save(log);
 
-            txn.setStatus("SUCCESS");
+            auditLogRepository.save(log);
+            dynamoDbAuditLogRepository.save(log);
+
             return txn;
         } catch (Exception ex) {
             Transaction failTxn = new Transaction(UUID.randomUUID().toString(), account.getId(), null, "WITHDRAW", amount);
@@ -116,8 +134,10 @@ public class TransactionService {
             transactionRepository.save(failTxn);
 
             AuditLog failLog = new AuditLog(UUID.randomUUID().toString(), failTxn.getId(), account.getId(),
-                    actorId, "WITHDRAW_FAILED:" + ex.getMessage(), before, before);
+                    actorId, "WITHDRAW_FAILED", before, before);
+
             auditLogRepository.save(failLog);
+            dynamoDbAuditLogRepository.save(failLog);
 
             throw new TransactionFailedException("Withdrawal failed: " + ex.getMessage());
         }
@@ -155,6 +175,10 @@ public class TransactionService {
             txn.setStatus("SUCCESS");
             transactionRepository.save(txn);
 
+            MiniStatementService ms = MiniStatementService.getInstance(transactionRepository);
+            ms.addTransaction(source.getId(), txn);
+            ms.addTransaction(dest.getId(), txn);
+
             AuditLog log1 = new AuditLog(UUID.randomUUID().toString(), txn.getId(), source.getId(),
                     actorId, "TRANSFER-DEBIT", beforeSrc, source.getBalance());
             AuditLog log2 = new AuditLog(UUID.randomUUID().toString(), txn.getId(), dest.getId(),
@@ -162,17 +186,34 @@ public class TransactionService {
 
             auditLogRepository.save(log1);
             auditLogRepository.save(log2);
+            dynamoDbAuditLogRepository.save(log1);
+            dynamoDbAuditLogRepository.save(log2);
 
             return txn;
         } catch (Exception ex) {
-            // ✅ Only source account gets a failed transaction log
-            Transaction failTxn = new Transaction(UUID.randomUUID().toString(), source.getId(), null, "TRANSFER", amount);
+            // 🔴 FIXED: Destination account should not be linked in failed transfer
+            Transaction failTxn = new Transaction(
+                    UUID.randomUUID().toString(),
+                    source.getId(),   // only source
+                    null,             // no destination
+                    "TRANSFER",
+                    amount
+            );
             failTxn.setStatus("FAILED");
             transactionRepository.save(failTxn);
 
-            AuditLog failLog = new AuditLog(UUID.randomUUID().toString(), failTxn.getId(), source.getId(),
-                    actorId, "TRANSFER_FAILED:" + ex.getMessage(), beforeSrc, beforeSrc);
+            AuditLog failLog = new AuditLog(
+                    UUID.randomUUID().toString(),
+                    failTxn.getId(),
+                    source.getId(),
+                    actorId,
+                    "TRANSFER_FAILED",
+                    beforeSrc,
+                    beforeSrc
+            );
+
             auditLogRepository.save(failLog);
+            dynamoDbAuditLogRepository.save(failLog);
 
             throw new TransactionFailedException("Transfer failed: " + ex.getMessage());
         }
@@ -187,6 +228,7 @@ public class TransactionService {
             throw new UnauthorizedAccessException("Unauthorized: cannot view this account's transactions");
         }
 
-        return transactionRepository.findByAccountNumber(account.getId());
+        return transactionRepository.findByAccountId(account.getId());
     }
 }
+

@@ -13,11 +13,11 @@ public class ExceptionHandler {
                 || e instanceof UnauthorizedAccessException
                 || e instanceof NegativeAmountException
                 || e instanceof InsufficientFundsException) {
-            System.out.println("❌ " + e.getMessage());
+            System.out.println("\n❌ " + e.getMessage());
         } else if (e instanceof IllegalArgumentException) {
-            System.out.println("❌ Invalid input: " + e.getMessage());
+            System.out.println("\n❌ Invalid input: " + e.getMessage());
         } else {
-            System.out.println("❌ Unexpected error: " + e.getMessage());
+            System.out.println("\n❌ Unexpected error: " + e.getMessage());
         }
     }
 }

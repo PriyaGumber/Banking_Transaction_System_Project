@@ -5,6 +5,8 @@ import com.example.banking.exception.LogoutException;
 import com.example.banking.model.Customer;
 import com.example.banking.repository.*;
 import com.example.banking.service.*;
+import com.example.banking.utils.DynamoDBUtil;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 import java.util.Scanner;
 
@@ -14,19 +16,21 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
 
         // === Initialize repositories ===
-        CustomerRepository customerRepo = new InMemoryCustomerRepository();
-        AccountRepository accountRepo = new InMemoryAccountRepository();
-        TransactionRepository transactionRepo = new InMemoryTransactionRepository();
-        AuditLogRepository auditRepo = new InMemoryAuditLogRepository();
+        CustomerRepository customerRepo = new JDBCCustomerRepository();
+        AccountRepository accountRepo = new JDBCAccountRepository();
+        TransactionRepository transactionRepo = new JDBCTransactionRepository();
+        AuditLogRepository auditRepo = new JDBCAuditLogRepository();
+        DynamoDbClient dynamoDbClient = DynamoDBUtil.getLocalClient();
 
         // === Initialize services ===
         AuthService authService = AuthService.getInstance(customerRepo);
         AccountService accountService = AccountService.getInstance(accountRepo);
-        TransactionService transactionService = TransactionService.getInstance(accountRepo, transactionRepo, auditRepo);
+        TransactionService transactionService = TransactionService.getInstance(accountRepo, transactionRepo, auditRepo, dynamoDbClient);
+        MiniStatementService miniStatementService = MiniStatementService.getInstance(transactionRepo);
 
         // === Initialize menu handlers ===
-        GuestMenuHandler guestMenu = new GuestMenuHandler(authService);
-        CustomerMenuHandler customerMenu = new CustomerMenuHandler(authService, accountService, transactionService);
+        GuestMenuHandler guestMenu = new GuestMenuHandler(authService, accountService, transactionRepo);
+        CustomerMenuHandler customerMenu = new CustomerMenuHandler(authService, accountService, transactionService, miniStatementService);
 
         Customer loggedInCustomer = null;
         boolean running = true;
@@ -39,12 +43,15 @@ public class Main {
                     loggedInCustomer = customerMenu.showMenu(scanner, loggedInCustomer);
                 }
             } catch (LogoutException e) {
+                System.out.println();
                 System.out.println(e.getMessage());
                 loggedInCustomer = null;   // ✅ back to guest menu
             } catch (ExitException e) {
+                System.out.println();
                 System.out.println("👋 Exiting Banking System...");
                 running = false;   // ✅ ends the loop cleanly
             } catch (Exception e) {
+                System.out.println();
                 ExceptionHandler.handle(e);
             }
         }
@@ -52,4 +59,3 @@ public class Main {
         scanner.close();
     }
 }
-

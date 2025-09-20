@@ -21,6 +21,16 @@ public class Account {
         this.type = type;
         this.createdAt = Instant.now();
     }
+    // Constructor for JDBC / DB loading
+    public Account(String id, String customerId, String number, BigDecimal balance, String type, String status, Instant createdAt) {
+        this.id = id;
+        this.customerId = customerId;
+        this.number = number;
+        this.balance = balance;
+        this.type = type;
+        this.status = status;
+        this.createdAt = createdAt;
+    }
 
     // Getters & Setters
     public String getId() { return id; }
