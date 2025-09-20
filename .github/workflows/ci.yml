@@ -2,14 +2,16 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Set up JDK 17
@@ -19,20 +21,10 @@ jobs:
           java-version: '17'
 
       - name: Build with Maven
+        # Use exact folder casing
+        working-directory: ./M2025Project/banking-transaction-system
         run: mvn clean package -DskipTests
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Login to DockerHub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/banking-transaction:latest
+      - name: Build Docker image
+        # Docker build context and Dockerfile
+        run: docker build -t banking-app ./M2025Project/banking-transaction-system
