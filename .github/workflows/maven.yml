@@ -1,0 +1,57 @@
+name: Maven CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Setup JDK 17 + Maven caching
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      # 3️⃣ Build the project (inside subfolder)
+      - name: Build with Maven
+        working-directory: ./M2025Project/banking_transaction_system
+        run: mvn -B clean install
+
+      # 4️⃣ Run Tests
+      - name: Run Tests
+        working-directory: ./M2025Project/banking_transaction_system
+        run: mvn test
+
+      # 4️⃣a Verify JAR exists
+      - name: Verify JAR
+        run: ls -l ./M2025Project/banking_transaction_system/target/
+
+      # 5️⃣ Login to GitHub Container Registry
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 6️⃣ Build and push Docker image
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./M2025Project/banking_transaction_system
+          file: ./M2025Project/banking_transaction_system/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
