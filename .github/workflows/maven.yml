@@ -25,17 +25,17 @@ jobs:
 
       # 3️⃣ Build the project (inside subfolder)
       - name: Build with Maven
-        working-directory: ./M2025Project/banking_transaction_system
+        working-directory: ./M2025Project/banking-transaction-system
         run: mvn -B clean install
 
       # 4️⃣ Run Tests
       - name: Run Tests
-        working-directory: ./M2025Project/banking_transaction_system
+        working-directory: ./M2025Project/banking-transaction-system
         run: mvn test
 
       # 4️⃣a Verify JAR exists
       - name: Verify JAR
-        run: ls -l ./M2025Project/banking_transaction_system/target/
+        run: ls -l ./M2025Project/banking-transaction-system/target/
 
       # 5️⃣ Login to GitHub Container Registry
       - name: Log in to GHCR
@@ -49,8 +49,8 @@ jobs:
       - name: Build and Push Docker image
         uses: docker/build-push-action@v4
         with:
-          context: ./M2025Project/banking_transaction_system
-          file: ./M2025Project/banking_transaction_system/Dockerfile
+          context: ./M2025Project/banking-transaction-system
+          file: ./M2025Project/banking-transaction-system/Dockerfile
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:latest
