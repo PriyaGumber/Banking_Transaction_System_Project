@@ -1,11 +1,11 @@
-# Use Temurin JDK 17 (no authentication required)
+# Use Temurin JDK 17
 FROM eclipse-temurin:17-jdk
 
-# Set working directory inside container
+# Set working directory
 WORKDIR /app
 
 # Copy the JAR produced by Maven build
-COPY M2025Project/banking-transaction-system/target/banking-transaction-system-1.0-SNAPSHOT.jar app.jar
+COPY target/banking-transaction-system-1.0-SNAPSHOT.jar app.jar
 
 # Run the JAR
 ENTRYPOINT ["java", "-jar", "app.jar"]
