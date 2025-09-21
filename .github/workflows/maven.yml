@@ -54,5 +54,5 @@ jobs:
           push: true
           tags: |
             ghcr.io/priyagumber/banking_transaction_system_project:latest
-            ghcr.io/priyagumber/banking_transaction_system_project:<commit-sha>
+            ghcr.io/priyagumber/banking_transaction_system_project:${{ github.sha }}
 
