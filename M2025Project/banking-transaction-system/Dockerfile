@@ -5,7 +5,7 @@ FROM eclipse-temurin:17-jdk
 WORKDIR /app
 
 # Copy the JAR produced by Maven build
-COPY M2025Project/banking-transaction-system/target/*.jar app.jar
+COPY M2025Project/banking-transaction-system/target/banking-transaction-system-1.0-SNAPSHOT.jar app.jar
 
 # Run the JAR
 ENTRYPOINT ["java", "-jar", "app.jar"]
