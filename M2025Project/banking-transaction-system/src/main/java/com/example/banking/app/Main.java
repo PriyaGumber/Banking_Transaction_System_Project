@@ -55,7 +55,6 @@ public class Main {
                 ExceptionHandler.handle(e);
             }
         }
-
         scanner.close();
     }
 }

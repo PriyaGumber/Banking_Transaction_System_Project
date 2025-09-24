@@ -58,6 +58,7 @@ class AccountServiceTest {
         assertNotNull(created);
         assertEquals("SAVINGS", created.getType());
         verify(accountRepository, atLeastOnce()).save(created);
+        System.out.println("Saving data here");
     }
 
     @Test
